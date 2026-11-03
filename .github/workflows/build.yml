@@ -7,6 +7,7 @@ on:
       - 'app/**'
       - '*.gradle.kts'
       - 'gradle.properties'
+      - '*.zip'
       - '.github/workflows/build.yml'
 
 permissions:
@@ -24,11 +25,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Locate project folder
+      - name: Locate project folder (unzips a ZIP if needed)
         run: |
+          if [ -z "$(find . -maxdepth 3 -name settings.gradle.kts -not -path './.git/*' | head -n 1)" ]; then
+            z=$(find . -maxdepth 2 -name '*.zip' -not -path './.git/*' | head -n 1)
+            if [ -n "$z" ]; then
+              echo "No project files found, unzipping $z"
+              mkdir -p _project
+              unzip -q "$z" -d _project
+            fi
+          fi
           f=$(find . -maxdepth 3 -name settings.gradle.kts -not -path './.git/*' | head -n 1)
           if [ -z "$f" ]; then
-            echo "::error::settings.gradle.kts not found. Upload the extracted ZIP contents, not the ZIP file."
+            echo "::error::settings.gradle.kts not found, even after trying to unzip."
             ls -la
             exit 1
           fi
